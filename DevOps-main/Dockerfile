@@ -1,15 +1,23 @@
-# Utilisation de l'image de base OpenJDK 17 (version slim pour la taille)
+Utilisation d'une image de base Java légère
+
 FROM openjdk:17.0.1-jdk-slim
 
-# Définition du répertoire de travail à l'intérieur du conteneur
-WORKDIR /app
+Métadonnées et environnement
 
-# Copie du JAR construit par Maven dans le conteneur
-# Le JAR est dans target/ et a ce nom : student-management-0.0.1-SNAPSHOT.jar
-COPY DevOps-main/target/student-management-0.0.1-SNAPSHOT.jar /app/app.jar
-
-# Exposition du port par défaut de l'application Spring Boot (si c'est 8080 ou 8089)
+LABEL maintainer="rirou11"
+ENV APP_PORT 8089
 EXPOSE 8089
 
-# Commande pour exécuter l'application
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+Définir le répertoire de travail à l'intérieur du conteneur
+
+WORKDIR /app
+
+Copie du JAR construit par Maven dans le conteneur
+
+Correction du chemin : le fichier JAR se trouve dans 'target/' par rapport au contexte de build (DevOps-main)
+
+COPY target/student-management-0.0.1-SNAPSHOT.jar /app/app.jar
+
+Commande pour démarrer l'application Spring Boot
+
+ENTRYPOINT ["java", "-jar", "app.jar"]
