@@ -10,7 +10,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo '📥 Cloning repository...'
-                git branch: 'main', url: '//github.com/rirou11/devops.git'
+                git branch: 'main', url: 'https://github.com/rirou11/devops.git'
             }
         }
 
