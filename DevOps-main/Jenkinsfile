@@ -39,6 +39,41 @@ pipeline {
             }
         }
 
+        // --- NOUVEAUX STAGES DOCKER AJOUTÉS ICI ---
+        
+        stage('Build Docker Image') {
+            steps {
+                echo '🐳 Building Docker image...'
+                dir('DevOps-main') {
+                    // La commande 'docker build' utilise le Dockerfile présent dans ce répertoire
+                    // NOM DE L'IMAGE: rayhana123/student-management:BUILD_ID
+                    sh "docker build -t rayhana123/student-management:${env.BUILD_ID} ."
+                    // Ajout du tag 'latest'
+                    sh "docker tag rayhana123/student-management:${env.BUILD_ID} rayhana123/student-management:latest"
+                }
+            }
+        }
+        
+        stage('Push Docker Image to Hub') {
+            steps {
+                // Utilise le credential 'docker-hub-credentials'
+                withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
+                    echo '🚀 Pushing Docker image to Docker Hub...'
+                    
+                    // 1. Connexion à Docker Hub
+                    sh "echo \"$DOCKER_PASSWORD\" | docker login -u \"$DOCKER_USERNAME\" --password-stdin"
+                    
+                    // 2. Pousser les deux tags
+                    sh "docker push rayhana123/student-management:${env.BUILD_ID}"
+                    sh "docker push rayhana123/student-management:latest"
+                    
+                    sh 'docker logout' // 3. Déconnexion
+                }
+            }
+        }
+
+        // --- FIN DES NOUVEAUX STAGES DOCKER ---
+
         stage('Archive Artifacts') {
             steps {
                 echo '📦 Archiving artifacts...'
