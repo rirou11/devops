@@ -3,17 +3,16 @@ pipeline {
     agent any
 
     // Outils (JDK et Maven)
-    // Assurez-vous que 'JDK21' et 'Maven3' sont configurés dans Jenkins > Gérer Jenkins > Outils.
     tools {
-        jdk 'JDK21'
-        maven 'Maven3'
+        jdk 'JDK21' // Doit correspondre au nom configuré dans Jenkins
+        maven 'Maven3' // Doit correspondre au nom configuré dans Jenkins
     }
 
     stages {
         stage('Checkout') {
             steps {
                 echo '📥 Cloning repository...'
-                // CORRECTION : Utilisation de l'URL HTTPS complète
+                // Utilisation de l'URL HTTPS complète
                 git branch: 'main', url: 'https://github.com/rirou11/devops.git'
             }
         }
@@ -22,9 +21,9 @@ pipeline {
         stage('Test') {
             steps {
                 echo '🧪 Running Maven tests...'
-                // CORRECTION : Nécessaire pour naviguer dans le sous-dossier où se trouve le pom.xml
+                // Se déplacer dans le sous-dossier où se trouve le pom.xml
                 dir('DevOps-main') {
-                    // Exécute la phase 'test' de Maven
+                    // Exécute la phase 'test' de Maven. S'il y a un échec, le pipeline s'arrête ici.
                     sh 'mvn test' 
                 }
             }
@@ -45,8 +44,7 @@ pipeline {
             steps {
                 echo '📦 Archiving artifacts...'
                 dir('DevOps-main') {
-                    // Sauvegarde le fichier JAR généré dans le dossier 'target'
-                    // Le nom du fichier est basé sur le pom.xml (e.g., student-management-0.0.1-SNAPSHOT.jar)
+                    // Sauvegarde le fichier JAR généré. Il sera accessible sur la page du build.
                     archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
                 }
             }
