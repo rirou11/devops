@@ -44,17 +44,18 @@ pipeline {
                 echo "📤 Poussée de l'image vers Docker Hub..."
                 dir('DevOps-main') {
 
-                    withCredentials([
-                        usernamePassword(
-                            credentialsId: 'docker-hub-credentials',
-                            usernameVariable: 'DOCKER_USER',
-                            passwordVariable: 'DOCKER_PASSWORD'
-                        )
-                    ]) {
+                    withCredentials([usernamePassword(
+                        credentialsId: 'docker-hub-credentials',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )]) {
 
-                        // ⛔ IMPORTANT : Utilise DOCKER_USER au lieu d'un username écrit en dur
-                        sh "echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USER} --password-stdin"
+                        // Correct : utiliser le vrai username Docker Hub
+                        sh """
+                        echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USER}" --password-stdin
+                        """
 
+                        // Push des tags
                         sh "docker push ${DOCKERHUB_REPO}:${IMAGE_TAG}"
                         sh "docker push ${DOCKERHUB_REPO}:latest"
                     }
@@ -67,13 +68,13 @@ pipeline {
 
     post {
         success {
-            echo "✅ Succès : Pipeline terminé avec succès."
+            echo "✅ Succès : Pipeline terminé avec succès. Images poussées à Docker Hub."
         }
         failure {
-            echo "❌ Échec : Vérifiez les identifiants Docker Hub."
+            echo "❌ Échec : Le pipeline a échoué. Vérifiez les identifiants Docker Hub."
         }
         always {
-            echo "🧹 Nettoyage terminé."
+            echo "Nettoyage terminé."
         }
     }
 }
