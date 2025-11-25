@@ -1,18 +1,14 @@
 pipeline {
     agent any
 
-    // Configuration des outils globaux
     tools {
-        // CORRECTION 1: 'Maven3' doit être utilisé (sensible à la casse)
-        // et doit correspondre au nom configuré dans 'Manage Jenkins -> Global Tool Configuration'.
+        // CORRECTION 1: 'Maven3' est sensible à la casse
         maven 'Maven3'
     }
 
     environment {
-        // Variables pour Docker Hub
         DOCKERHUB_REPO = "rirou11/student-management"
         IMAGE_NAME = "student-management"
-        // Le tag de l'image est l'ID du build Jenkins (unique)
         IMAGE_TAG = "${env.BUILD_ID}"
     }
 
@@ -21,7 +17,6 @@ pipeline {
         stage('Checkout SCM') {
             steps {
                 echo "📥 Clonage du dépôt Git..."
-                // Récupère le code du dépôt spécifié dans la configuration du job
                 checkout scm
             }
         }
@@ -29,9 +24,7 @@ pipeline {
         stage('Build Maven & Package') {
             steps {
                 echo "⚙️ Exécution du package Maven..."
-                // Le pipeline assume que le code source est dans un sous-dossier 'DevOps-main'
                 dir('DevOps-main') {
-                    // Utilisation de l'outil Maven configuré
                     sh "mvn clean package -DskipTests"
                 }
             }
@@ -41,9 +34,7 @@ pipeline {
             steps {
                 echo "🐳 Construction de l'image Docker..."
                 dir('DevOps-main') {
-                    // Construction de l'image avec le tag BUILD_ID
                     sh "docker build -t ${DOCKERHUB_REPO}:${IMAGE_TAG} ."
-                    // Ajout du tag 'latest'
                     sh "docker tag ${DOCKERHUB_REPO}:${IMAGE_TAG} ${DOCKERHUB_REPO}:latest"
                 }
             }
@@ -53,25 +44,22 @@ pipeline {
             steps {
                 echo "📤 Poussée de l'image vers Docker Hub..."
                 dir('DevOps-main') {
-                    // CORRECTION 2 & SÉCURITÉ : Utilise un credential de type 'Username with password' 
-                    // dont l'ID est 'docker-hub-credentials'
+                    // Utilisation sécurisée du credential 'docker-hub-credentials'
                     withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASSWORD')]) {
                         
-                        // Connexion sécurisée en utilisant les variables injectées
+                        // Connexion
                         sh "echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USER} --password-stdin"
                         
-                        // Push des deux tags
+                        // Push
                         sh "docker push ${DOCKERHUB_REPO}:${IMAGE_TAG}"
                         sh "docker push ${DOCKERHUB_REPO}:latest"
                     }
-                    // Déconnexion (optionnel, mais bonne pratique)
                     sh "docker logout"
                 }
             }
         }
     }
 
-    // Actions après la fin du pipeline
     post {
         success {
             echo "✅ Succès : Pipeline terminé avec succès. Images poussées à Docker Hub."
@@ -79,11 +67,13 @@ pipeline {
         failure {
             echo "❌ Échec : Le pipeline a échoué. Veuillez vérifier le log, notamment les identifiants Docker Hub."
         }
+        // CORRECTION 2: Le bloc 'always' doit contenir une section 'steps'
         always {
-            // CORRECTION : Le bloc 'always' doit contenir une section 'steps' ou une action.
             steps {
-                 // Décommenter l'action pour le nettoyage local
-                 sh "docker rmi ${DOCKERHUB_REPO}:${IMAGE_TAG} || true" 
+                 echo "Nettoyage en cours..."
+                 // Optionnel : Nettoyer l'image locale après le push
+                 // sh "docker rmi ${DOCKERHUB_REPO}:${IMAGE_TAG} || true" 
             }
         }
     }
+} // <--- C'est l'accolade manquante qui a causé l'erreur 90
