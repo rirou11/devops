@@ -80,8 +80,10 @@ pipeline {
             echo "❌ Échec : Le pipeline a échoué. Veuillez vérifier le log, notamment les identifiants Docker Hub."
         }
         always {
-            // Nettoyage des images locales si nécessaire (à ajouter en fonction de l'environnement)
-            // sh "docker rmi ${DOCKERHUB_REPO}:${IMAGE_TAG} || true" 
+            // CORRECTION : Le bloc 'always' doit contenir une section 'steps' ou une action.
+            steps {
+                 // Décommenter l'action pour le nettoyage local
+                 sh "docker rmi ${DOCKERHUB_REPO}:${IMAGE_TAG} || true" 
+            }
         }
     }
-}
