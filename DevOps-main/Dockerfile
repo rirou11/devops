@@ -4,11 +4,11 @@ FROM amazoncorretto:17-alpine
 # Dossier de travail
 WORKDIR /app
 
-# Exposer le port Spring Boot
+# Exposer le port par défaut de Spring Boot
 EXPOSE 8080
 
-# Copier le JAR généré
+# Copier le JAR généré par Maven
 COPY target/student-management-0.0.1-SNAPSHOT.jar app.jar
 
-# Lancement de l'application
+# Lancer l'application
 CMD ["java", "-jar", "app.jar"]
