@@ -54,7 +54,7 @@ pipeline {
                 dir('DevOps-main') {
                     withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASSWORD')]) {
                         // Connexion
-                        sh "echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USER} --password-stdin"
+                        sh "echo ${DOCKER_PASSWORD} | docker login -u rirou11 --password-stdin"
                         // Push des deux tags
                         sh "docker push ${DOCKERHUB_REPO}:${IMAGE_TAG}"
                         sh "docker push ${DOCKERHUB_REPO}:latest"
