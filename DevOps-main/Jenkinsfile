@@ -1,33 +1,37 @@
 pipeline {
-    agent any
+    agent any
 
-    tools {
-        jdk 'JDK21'      // make sure this name exists in Jenkins → Manage Jenkins → Global Tool Configuration
-        maven 'Maven3'   // same here: tool name must match your Maven installation name
-    }
+    tools {
+        jdk 'JDK21'
+        maven 'Maven3'
+    }
 
-    stages {
-        stage('Checkout') {
-            steps {
-                echo '📥 Cloning repository...'
-                git branch: 'main', url: 'https://github.com/rirou11/devops.git'
-            }
-        }
+    stages {
+        stage('Checkout') {
+            steps {
+                echo '📥 Cloning repository...'
+                // Utilisation de HTTPS pour éviter l'erreur de protocole
+                git branch: 'main', url: 'https://github.com/rirou11/devops.git' 
+            }
+        }
 
-        stage('Build') {
-            steps {
-                echo '⚙️ Running Maven build...'
-                sh 'mvn clean compile -U'
-            }
-        }
-    }
+        stage('Build') {
+            steps {
+                echo '⚙️ Running Maven build...'
+                // IMPORTANT: Navigue dans le répertoire 'DevOps-main' où se trouve le pom.xml
+                dir('DevOps-main') { 
+                    sh 'mvn clean compile -U'
+                }
+            }
+        }
+    }
 
-    post {
-        success {
-            echo '✅ Build completed successfully!'
-        }
-        failure {
-            echo '❌ Build failed — check console output for details.'
-        }
-    }
+    post {
+        success {
+            echo '✅ Build completed successfully!'
+        }
+        failure {
+            echo '❌ Build failed — check console output for details.'
+        }
+    }
 }
