@@ -1,16 +1,18 @@
 pipeline {
     agent any
 
+    // Configuration des outils globaux
     tools {
-        // CORRECTION: Changement de 'maven3' en 'Maven3' pour correspondre à la configuration globale Jenkins
+        // CORRECTION 1: 'Maven3' doit être utilisé (sensible à la casse)
+        // et doit correspondre au nom configuré dans 'Manage Jenkins -> Global Tool Configuration'.
         maven 'Maven3'
     }
 
     environment {
-        // Remplacez 'rirou11' par votre nom d'utilisateur Docker Hub si nécessaire
+        // Variables pour Docker Hub
         DOCKERHUB_REPO = "rirou11/student-management"
         IMAGE_NAME = "student-management"
-        // Le tag de l'image sera l'ID du build Jenkins
+        // Le tag de l'image est l'ID du build Jenkins (unique)
         IMAGE_TAG = "${env.BUILD_ID}"
     }
 
@@ -19,6 +21,7 @@ pipeline {
         stage('Checkout SCM') {
             steps {
                 echo "📥 Clonage du dépôt Git..."
+                // Récupère le code du dépôt spécifié dans la configuration du job
                 checkout scm
             }
         }
@@ -26,8 +29,9 @@ pipeline {
         stage('Build Maven & Package') {
             steps {
                 echo "⚙️ Exécution du package Maven..."
-                // L'exécution se fait dans le sous-dossier contenant le pom.xml
+                // Le pipeline assume que le code source est dans un sous-dossier 'DevOps-main'
                 dir('DevOps-main') {
+                    // Utilisation de l'outil Maven configuré
                     sh "mvn clean package -DskipTests"
                 }
             }
@@ -36,9 +40,8 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 echo "🐳 Construction de l'image Docker..."
-                // L'exécution se fait dans le sous-dossier contenant le Dockerfile
                 dir('DevOps-main') {
-                    // Utilisation de l'IMAGE_TAG pour versionner l'image
+                    // Construction de l'image avec le tag BUILD_ID
                     sh "docker build -t ${DOCKERHUB_REPO}:${IMAGE_TAG} ."
                     // Ajout du tag 'latest'
                     sh "docker tag ${DOCKERHUB_REPO}:${IMAGE_TAG} ${DOCKERHUB_REPO}:latest"
@@ -49,27 +52,36 @@ pipeline {
         stage('Push Docker Image to Hub') {
             steps {
                 echo "📤 Poussée de l'image vers Docker Hub..."
-                // MEILLEURE PRATIQUE: Utilisation d'un credential 'Username with password'
-                // NOTE: 'docker-hub-credentials' doit être de type 'Username with password'
                 dir('DevOps-main') {
+                    // CORRECTION 2 & SÉCURITÉ : Utilise un credential de type 'Username with password' 
+                    // dont l'ID est 'docker-hub-credentials'
                     withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASSWORD')]) {
-                        // Connexion
-                        sh "echo ${DOCKER_PASSWORD} | docker login -u rirou11 --password-stdin"
+                        
+                        // Connexion sécurisée en utilisant les variables injectées
+                        sh "echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USER} --password-stdin"
+                        
                         // Push des deux tags
                         sh "docker push ${DOCKERHUB_REPO}:${IMAGE_TAG}"
                         sh "docker push ${DOCKERHUB_REPO}:latest"
                     }
+                    // Déconnexion (optionnel, mais bonne pratique)
+                    sh "docker logout"
                 }
             }
         }
     }
 
+    // Actions après la fin du pipeline
     post {
         success {
             echo "✅ Succès : Pipeline terminé avec succès. Images poussées à Docker Hub."
         }
         failure {
-            echo "❌ Échec : Le pipeline a échoué. Veuillez vérifier les logs ci-dessus."
+            echo "❌ Échec : Le pipeline a échoué. Veuillez vérifier le log, notamment les identifiants Docker Hub."
+        }
+        always {
+            // Nettoyage des images locales si nécessaire (à ajouter en fonction de l'environnement)
+            // sh "docker rmi ${DOCKERHUB_REPO}:${IMAGE_TAG} || true" 
         }
     }
 }
