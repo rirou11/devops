@@ -1,96 +1,68 @@
 pipeline {
-    // Agent
     agent any
 
-    // Outils (JDK et Maven)
     tools {
-        jdk 'JDK21' // Doit correspondre au nom configuré dans Jenkins
-        maven 'Maven3' // Doit correspondre au nom configuré dans Jenkins
+        maven 'maven3'
+    }
+
+    environment {
+        DOCKERHUB_REPO = ""rirou11/student-management"
+        IMAGE_NAME = "student-management"
     }
 
     stages {
+
         stage('Checkout') {
             steps {
-                echo '📥 Cloning repository...'
-                // Utilisation de l'URL HTTPS complète
-                git branch: 'main', url: 'https://github.com/rirou11/devops.git'
+                checkout scm
             }
         }
-        
-        // STAGE DE TEST MODIFIÉ POUR LE DIAGNOSTIC
-        stage('Test (Skipped)') {
+
+        stage('Build Maven') {
             steps {
-                echo '🧪 Running Maven Compile & SKIPPING tests for diagnostic...'
-                // Se déplacer dans le sous-dossier où se trouve le pom.xml
-                dir('DevOps-main') {
-                    // Compilation seule : -DskipTests permet d'ignorer les tests unitaires
-                    sh 'mvn clean compile -DskipTests -U' 
+                dir('student-management') {
+                    sh "mvn clean package -DskipTests"
                 }
             }
         }
 
-        stage('Build & Package') {
-            steps {
-                echo '⚙️ Running Maven package and building JAR...'
-                dir('DevOps-main') {
-                    // Le packaging (création du JAR) : -DskipTests permet d'ignorer les tests unitaires
-                    sh 'mvn package -DskipTests' 
-                }
-            }
-        }
-
-        // --- NOUVEAUX STAGES DOCKER AJOUTÉS ICI ---
-        
         stage('Build Docker Image') {
             steps {
-                echo '🐳 Building Docker image...'
-                dir('DevOps-main') {
-                    // La commande 'docker build' utilise le Dockerfile présent dans ce répertoire
-                    // NOM DE L'IMAGE: rayhana123/student-management:BUILD_ID
-                    sh "docker build -t rayhana123/student-management:${env.BUILD_ID} ."
-                    // Ajout du tag 'latest'
-                    sh "docker tag rayhana123/student-management:${env.BUILD_ID} rayhana123/student-management:latest"
-                }
-            }
-        }
-        
-        stage('Push Docker Image to Hub') {
-            steps {
-                // Utilise le credential 'docker-hub-credentials'
-                withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
-                    echo '🚀 Pushing Docker image to Docker Hub...'
-                    
-                    // 1. Connexion à Docker Hub
-                    sh "echo \"$DOCKER_PASSWORD\" | docker login -u \"$DOCKER_USERNAME\" --password-stdin"
-                    
-                    // 2. Pousser les deux tags
-                    sh "docker push rayhana123/student-management:${env.BUILD_ID}"
-                    sh "docker push rayhana123/student-management:latest"
-                    
-                    sh 'docker logout' // 3. Déconnexion
+                dir('student-management') {
+                    sh "docker build -t ${IMAGE_NAME}:latest ."
                 }
             }
         }
 
-        // --- FIN DES NOUVEAUX STAGES DOCKER ---
-
-        stage('Archive Artifacts') {
+        stage('Test Generated Image') {
             steps {
-                echo '📦 Archiving artifacts...'
-                dir('DevOps-main') {
-                    // Sauvegarde le fichier JAR généré.
-                    archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
-                }
+                echo "Testing if image was generated inside the container"
+                sh """
+                    docker run --rm student-management:latest \
+                    ls -l /app
+                """
             }
         }
     }
 
     post {
         success {
-            echo '✅ Pipeline completed successfully! Artifact archived.'
+            echo "Build OK ✔"
         }
         failure {
-            echo '❌ Pipeline failed — check console output for details.'
+            echo "Build FAILED ❌"
         }
     }
 }
+Rayen
+# IMAGE DE BASE LÉGÈRE (≈ 84 MB)
+FROM amazoncorretto:17-alpine
+
+# Dossier de travail
+WORKDIR /app
+
+# Copier le JAR généré par Maven
+COPY target/student-management-0.0.1-SNAPSHOT.jar app.jar
+
+# Lancement de l'application
+CMD ["java", "-jar", "app.jar"]
