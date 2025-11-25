@@ -1,8 +1,14 @@
 pipeline {
     agent any
 
+    tools {
+        maven 'Maven3'
+    }
+
     environment {
-        DOCKER_IMAGE = "rirou11/student-management"
+        DOCKERHUB_REPO = "rirou11/student-management"
+        IMAGE_NAME = "student-management"
+        IMAGE_TAG = "${env.BUILD_ID}"
     }
 
     stages {
@@ -10,14 +16,14 @@ pipeline {
         stage('Checkout SCM') {
             steps {
                 echo "📥 Clonage du dépôt Git..."
-                git branch: 'main', url: 'https://github.com/rirou11/devops.git'
+                checkout scm
             }
         }
 
         stage('Build Maven & Package') {
             steps {
                 echo "⚙️ Exécution du package Maven..."
-                dir("DevOps-main") {
+                dir('DevOps-main') {
                     sh "mvn clean package -DskipTests"
                 }
             }
@@ -26,9 +32,9 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 echo "🐳 Construction de l'image Docker..."
-                dir("DevOps-main") {
-                    sh "docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} ."
-                    sh "docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest"
+                dir('DevOps-main') {
+                    sh "docker build -t ${DOCKERHUB_REPO}:${IMAGE_TAG} ."
+                    sh "docker tag ${DOCKERHUB_REPO}:${IMAGE_TAG} ${DOCKERHUB_REPO}:latest"
                 }
             }
         }
@@ -36,17 +42,17 @@ pipeline {
         stage('Push Docker Image to Hub') {
             steps {
                 echo "📤 Poussée de l'image vers Docker Hub..."
-                dir("DevOps-main") {
-                    withCredentials([usernamePassword(
-                        credentialsId: 'docker-hub-credentials',
-                        usernameVariable: 'DOCKER_USERNAME',
-                        passwordVariable: 'DOCKER_PASSWORD'
-                    )]) {
-                        sh """
-                            echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-                            docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
-                            docker push ${DOCKER_IMAGE}:latest
-                        """
+                dir('DevOps-main') {
+                    withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_TOKEN')]) {
+                        // Login Docker Hub avec le token personnel
+                        sh "echo \$DOCKER_TOKEN | docker login -u \$DOCKER_USER --password-stdin"
+
+                        // Push des images
+                        sh "docker push ${DOCKERHUB_REPO}:${IMAGE_TAG}"
+                        sh "docker push ${DOCKERHUB_REPO}:latest"
+
+                        // Logout après push
+                        sh "docker logout"
                     }
                 }
             }
@@ -54,11 +60,14 @@ pipeline {
     }
 
     post {
-        always {
-            echo "Nettoyage terminé."
+        success {
+            echo "✅ Succès : Pipeline terminé avec succès. Images poussées à Docker Hub."
         }
         failure {
             echo "❌ Échec : Le pipeline a échoué. Vérifiez les identifiants Docker Hub."
+        }
+        always {
+            echo "Nettoyage terminé."
         }
     }
 }
