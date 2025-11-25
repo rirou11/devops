@@ -2,10 +2,12 @@ pipeline {
     agent any
 
     tools {
+        // Assurez-vous que 'Maven3' est le nom exact de votre configuration Maven dans Jenkins
         maven 'Maven3'
     }
 
     environment {
+        // Variables pour Docker Hub
         DOCKERHUB_REPO = "rirou11/student-management"
         IMAGE_NAME = "student-management"
         IMAGE_TAG = "${env.BUILD_ID}"
@@ -33,6 +35,7 @@ pipeline {
             steps {
                 echo "🐳 Construction de l'image Docker..."
                 dir('DevOps-main') {
+                    // Utilise le Dockerfile simple et stable
                     sh "docker build -t ${DOCKERHUB_REPO}:${IMAGE_TAG} ."
                     sh "docker tag ${DOCKERHUB_REPO}:${IMAGE_TAG} ${DOCKERHUB_REPO}:latest"
                 }
@@ -43,14 +46,17 @@ pipeline {
             steps {
                 echo "📤 Poussée de l'image vers Docker Hub..."
                 dir('DevOps-main') {
+                    // Utilisation sécurisée du credential 'docker-hub-credentials'
                     withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASSWORD')]) {
                         
-                        // L'erreur DOCKER_PASSWORD doit être corrigée via Jenkins Credentials UI !
+                        // Connexion (Le mot de passe doit être VALIDE dans Jenkins)
                         sh "echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USER} --password-stdin"
                         
+                        // Push des deux tags
                         sh "docker push ${DOCKERHUB_REPO}:${IMAGE_TAG}"
                         sh "docker push ${DOCKERHUB_REPO}:latest"
                     }
+                    // Déconnexion
                     sh "docker logout"
                 }
             }
@@ -65,7 +71,7 @@ pipeline {
             echo "❌ Échec : Le pipeline a échoué. Veuillez vérifier le log, notamment les identifiants Docker Hub."
         }
         always {
-            // CORRECTION DE SYNTAXE : Suppression du mot-clé 'steps'
+            // Correction de syntaxe : Pas de bloc 'steps {}' ici.
             echo "Nettoyage terminé."
         }
     }
