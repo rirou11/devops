@@ -2,7 +2,7 @@ pipeline {
     // Agent
     agent any
 
-    // Outils (Vérifiez que ces noms correspondent à votre configuration Jenkins)
+    // Outils (JDK et Maven)
     tools {
         jdk 'JDK21'
         maven 'Maven3'
@@ -12,18 +12,41 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo '📥 Cloning repository...'
-                // CORRECTION 1: Utilisation de l'URL HTTPS complète
                 git branch: 'main', url: 'https://github.com/rirou11/devops.git'
+            }
+        }
+        
+        // NOUVEAU STAGE : Exécution des tests unitaires
+        stage('Test') {
+            steps {
+                echo '🧪 Running Maven tests...'
+                // Se déplacer dans le bon répertoire
+                dir('DevOps-main') {
+                    // Exécute la phase 'test' de Maven
+                    sh 'mvn test' 
+                }
             }
         }
 
         stage('Build') {
             steps {
                 echo '⚙️ Running Maven build...'
-                // CORRECTION 2: Se déplacer dans le sous-répertoire 'DevOps-main'
-                // où se trouve le pom.xml pour que Maven puisse le trouver.
                 dir('DevOps-main') {
-                    sh 'mvn clean compile -U'
+                    // Utiliser 'package' au lieu de 'compile' pour générer le JAR/WAR
+                    // La phase 'package' inclut toujours 'clean' et 'compile'.
+                    sh 'mvn clean package -U' 
+                }
+            }
+        }
+
+        // NOUVEAU STAGE : Archivage des artefacts
+        stage('Archive') {
+            steps {
+                echo '📦 Archiving artifacts...'
+                dir('DevOps-main') {
+                    // Sauvegarde le fichier JAR généré dans le dossier 'target'
+                    // Le nom du fichier est 'student-management-0.0.1-SNAPSHOT.jar'
+                    archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
                 }
             }
         }
@@ -31,10 +54,10 @@ pipeline {
 
     post {
         success {
-            echo '✅ Build completed successfully!'
+            echo '✅ Pipeline completed successfully! Artifact archived.'
         }
         failure {
-            echo '❌ Build failed — check console output for details.'
+            echo '❌ Pipeline failed — check console output for details.'
         }
     }
 }
