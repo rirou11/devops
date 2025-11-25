@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     tools {
-        // Assurez-vous que l'outil Maven 'maven3' est configuré dans Jenkins
-        maven 'maven3'
+        // CORRECTION: Changement de 'maven3' en 'Maven3' pour correspondre à la configuration globale Jenkins
+        maven 'Maven3'
     }
 
     environment {
@@ -49,12 +49,12 @@ pipeline {
         stage('Push Docker Image to Hub') {
             steps {
                 echo "📤 Poussée de l'image vers Docker Hub..."
-                // Utilise les identifiants configurés dans Jenkins sous l'ID 'docker-hub-credentials'
-                // NOTE: Cette étape va échouer jusqu'à ce que les identifiants soient configurés.
+                // MEILLEURE PRATIQUE: Utilisation d'un credential 'Username with password'
+                // NOTE: 'docker-hub-credentials' doit être de type 'Username with password'
                 dir('DevOps-main') {
-                    withCredentials([string(credentialsId: 'docker-hub-credentials', variable: 'DOCKER_PASSWORD')]) {
+                    withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASSWORD')]) {
                         // Connexion
-                        sh "echo ${DOCKER_PASSWORD} | docker login -u rirou11 --password-stdin"
+                        sh "echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USER} --password-stdin"
                         // Push des deux tags
                         sh "docker push ${DOCKERHUB_REPO}:${IMAGE_TAG}"
                         sh "docker push ${DOCKERHUB_REPO}:latest"
@@ -66,7 +66,7 @@ pipeline {
 
     post {
         success {
-            echo "✅ Succès : Pipeline terminé avec succès."
+            echo "✅ Succès : Pipeline terminé avec succès. Images poussées à Docker Hub."
         }
         failure {
             echo "❌ Échec : Le pipeline a échoué. Veuillez vérifier les logs ci-dessus."
