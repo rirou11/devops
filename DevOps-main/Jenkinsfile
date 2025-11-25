@@ -3,6 +3,7 @@ pipeline {
     agent any
 
     // Outils (JDK et Maven)
+    // Assurez-vous que 'JDK21' et 'Maven3' sont configurés dans Jenkins > Gérer Jenkins > Outils.
     tools {
         jdk 'JDK21'
         maven 'Maven3'
@@ -12,6 +13,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo '📥 Cloning repository...'
+                // CORRECTION : Utilisation de l'URL HTTPS complète
                 git branch: 'main', url: 'https://github.com/rirou11/devops.git'
             }
         }
@@ -20,7 +22,7 @@ pipeline {
         stage('Test') {
             steps {
                 echo '🧪 Running Maven tests...'
-                // Se déplacer dans le bon répertoire
+                // CORRECTION : Nécessaire pour naviguer dans le sous-dossier où se trouve le pom.xml
                 dir('DevOps-main') {
                     // Exécute la phase 'test' de Maven
                     sh 'mvn test' 
@@ -28,24 +30,23 @@ pipeline {
             }
         }
 
-        stage('Build') {
+        stage('Build & Package') {
             steps {
-                echo '⚙️ Running Maven build...'
+                echo '⚙️ Running Maven build and packaging JAR...'
                 dir('DevOps-main') {
-                    // Utiliser 'package' au lieu de 'compile' pour générer le JAR/WAR
-                    // La phase 'package' inclut toujours 'clean' et 'compile'.
+                    // Utiliser 'package' pour compiler et créer le fichier JAR/WAR
                     sh 'mvn clean package -U' 
                 }
             }
         }
 
         // NOUVEAU STAGE : Archivage des artefacts
-        stage('Archive') {
+        stage('Archive Artifacts') {
             steps {
                 echo '📦 Archiving artifacts...'
                 dir('DevOps-main') {
                     // Sauvegarde le fichier JAR généré dans le dossier 'target'
-                    // Le nom du fichier est 'student-management-0.0.1-SNAPSHOT.jar'
+                    // Le nom du fichier est basé sur le pom.xml (e.g., student-management-0.0.1-SNAPSHOT.jar)
                     archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
                 }
             }
