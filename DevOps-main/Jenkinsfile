@@ -1,14 +1,8 @@
 pipeline {
     agent any
 
-    tools {
-        maven 'Maven3'
-    }
-
     environment {
-        DOCKERHUB_REPO = "rirou11/student-management"
-        IMAGE_NAME = "student-management"
-        IMAGE_TAG = "${env.BUILD_ID}"
+        DOCKER_IMAGE = "rirou11/student-management"
     }
 
     stages {
@@ -16,14 +10,14 @@ pipeline {
         stage('Checkout SCM') {
             steps {
                 echo "📥 Clonage du dépôt Git..."
-                checkout scm
+                git branch: 'main', url: 'https://github.com/rirou11/devops.git'
             }
         }
 
         stage('Build Maven & Package') {
             steps {
                 echo "⚙️ Exécution du package Maven..."
-                dir('DevOps-main') {
+                dir("DevOps-main") {
                     sh "mvn clean package -DskipTests"
                 }
             }
@@ -32,9 +26,9 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 echo "🐳 Construction de l'image Docker..."
-                dir('DevOps-main') {
-                    sh "docker build -t ${DOCKERHUB_REPO}:${IMAGE_TAG} ."
-                    sh "docker tag ${DOCKERHUB_REPO}:${IMAGE_TAG} ${DOCKERHUB_REPO}:latest"
+                dir("DevOps-main") {
+                    sh "docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} ."
+                    sh "docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest"
                 }
             }
         }
@@ -42,39 +36,29 @@ pipeline {
         stage('Push Docker Image to Hub') {
             steps {
                 echo "📤 Poussée de l'image vers Docker Hub..."
-                dir('DevOps-main') {
-
+                dir("DevOps-main") {
                     withCredentials([usernamePassword(
                         credentialsId: 'docker-hub-credentials',
-                        usernameVariable: 'DOCKER_USER',
+                        usernameVariable: 'DOCKER_USERNAME',
                         passwordVariable: 'DOCKER_PASSWORD'
                     )]) {
-
-                        // Correct : utiliser le vrai username Docker Hub
                         sh """
-                        echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USER}" --password-stdin
+                            echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+                            docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
+                            docker push ${DOCKER_IMAGE}:latest
                         """
-
-                        // Push des tags
-                        sh "docker push ${DOCKERHUB_REPO}:${IMAGE_TAG}"
-                        sh "docker push ${DOCKERHUB_REPO}:latest"
                     }
-
-                    sh "docker logout"
                 }
             }
         }
     }
 
     post {
-        success {
-            echo "✅ Succès : Pipeline terminé avec succès. Images poussées à Docker Hub."
+        always {
+            echo "Nettoyage terminé."
         }
         failure {
             echo "❌ Échec : Le pipeline a échoué. Vérifiez les identifiants Docker Hub."
-        }
-        always {
-            echo "Nettoyage terminé."
         }
     }
 }
