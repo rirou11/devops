@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     tools {
-        // CORRECTION 1: 'Maven3' est sensible à la casse
         maven 'Maven3'
     }
 
@@ -44,13 +43,11 @@ pipeline {
             steps {
                 echo "📤 Poussée de l'image vers Docker Hub..."
                 dir('DevOps-main') {
-                    // Utilisation sécurisée du credential 'docker-hub-credentials'
                     withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASSWORD')]) {
                         
-                        // Connexion
+                        // L'erreur DOCKER_PASSWORD doit être corrigée via Jenkins Credentials UI !
                         sh "echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USER} --password-stdin"
                         
-                        // Push
                         sh "docker push ${DOCKERHUB_REPO}:${IMAGE_TAG}"
                         sh "docker push ${DOCKERHUB_REPO}:latest"
                     }
@@ -67,13 +64,9 @@ pipeline {
         failure {
             echo "❌ Échec : Le pipeline a échoué. Veuillez vérifier le log, notamment les identifiants Docker Hub."
         }
-        // CORRECTION 2: Le bloc 'always' doit contenir une section 'steps'
         always {
-            steps {
-                 echo "Nettoyage en cours..."
-                 // Optionnel : Nettoyer l'image locale après le push
-                 // sh "docker rmi ${DOCKERHUB_REPO}:${IMAGE_TAG} || true" 
-            }
+            // CORRECTION DE SYNTAXE : Suppression du mot-clé 'steps'
+            echo "Nettoyage terminé."
         }
     }
-} // <--- C'est l'accolade manquante qui a causé l'erreur 90
+}
