@@ -2,25 +2,32 @@ pipeline {
     agent any
 
     tools {
+        // Assurez-vous que l'outil Maven 'maven3' est configuré dans Jenkins
         maven 'maven3'
     }
 
     environment {
+        // Remplacez 'rirou11' par votre nom d'utilisateur Docker Hub si nécessaire
         DOCKERHUB_REPO = "rirou11/student-management"
         IMAGE_NAME = "student-management"
+        // Le tag de l'image sera l'ID du build Jenkins
+        IMAGE_TAG = "${env.BUILD_ID}"
     }
 
     stages {
 
-        stage('Checkout') {
+        stage('Checkout SCM') {
             steps {
+                echo "📥 Clonage du dépôt Git..."
                 checkout scm
             }
         }
 
-        stage('Build Maven') {
+        stage('Build Maven & Package') {
             steps {
-                dir('student-management') {
+                echo "⚙️ Exécution du package Maven..."
+                // L'exécution se fait dans le sous-dossier contenant le pom.xml
+                dir('DevOps-main') {
                     sh "mvn clean package -DskipTests"
                 }
             }
@@ -28,41 +35,41 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                dir('student-management') {
-                    sh "docker build -t ${IMAGE_NAME}:latest ."
+                echo "🐳 Construction de l'image Docker..."
+                // L'exécution se fait dans le sous-dossier contenant le Dockerfile
+                dir('DevOps-main') {
+                    // Utilisation de l'IMAGE_TAG pour versionner l'image
+                    sh "docker build -t ${DOCKERHUB_REPO}:${IMAGE_TAG} ."
+                    // Ajout du tag 'latest'
+                    sh "docker tag ${DOCKERHUB_REPO}:${IMAGE_TAG} ${DOCKERHUB_REPO}:latest"
                 }
             }
         }
 
-        stage('Test Generated Image') {
+        stage('Push Docker Image to Hub') {
             steps {
-                echo "Testing if image was generated inside the container"
-                sh """
-                    docker run --rm student-management:latest \
-                    ls -l /app
-                """
+                echo "📤 Poussée de l'image vers Docker Hub..."
+                // Utilise les identifiants configurés dans Jenkins sous l'ID 'docker-hub-credentials'
+                // NOTE: Cette étape va échouer jusqu'à ce que les identifiants soient configurés.
+                dir('DevOps-main') {
+                    withCredentials([string(credentialsId: 'docker-hub-credentials', variable: 'DOCKER_PASSWORD')]) {
+                        // Connexion
+                        sh "echo ${DOCKER_PASSWORD} | docker login -u rirou11 --password-stdin"
+                        // Push des deux tags
+                        sh "docker push ${DOCKERHUB_REPO}:${IMAGE_TAG}"
+                        sh "docker push ${DOCKERHUB_REPO}:latest"
+                    }
+                }
             }
         }
     }
 
     post {
         success {
-            echo "Build OK ✔"
+            echo "✅ Succès : Pipeline terminé avec succès."
         }
         failure {
-            echo "Build FAILED ❌"
+            echo "❌ Échec : Le pipeline a échoué. Veuillez vérifier les logs ci-dessus."
         }
     }
 }
-Rayen
-# IMAGE DE BASE LÉGÈRE (≈ 84 MB)
-FROM amazoncorretto:17-alpine
-
-# Dossier de travail
-WORKDIR /app
-
-# Copier le JAR généré par Maven
-COPY target/student-management-0.0.1-SNAPSHOT.jar app.jar
-
-# Lancement de l'application
-CMD ["java", "-jar", "app.jar"]
