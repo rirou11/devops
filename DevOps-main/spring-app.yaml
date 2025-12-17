@@ -4,14 +4,14 @@ metadata:
   name: student-management-service
   namespace: devops
 spec:
+  type: NodePort
   selector:
     app: student-management
   ports:
     - protocol: TCP
-      port: 8080      # Port externe (celui que tu utiliseras)
-      targetPort: 8089 # Port interne (celui de ton code Java)
+      port: 8080      # Port exposé par le service
+      targetPort: 8089 # Port sur lequel l'app Spring Boot écoute réellement
       nodePort: 30001
-  type: NodePort
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -31,6 +31,13 @@ spec:
       containers:
       - name: student-management
         image: student-management-app:latest
-        imagePullPolicy: Never
+        imagePullPolicy: Never  # Important pour utiliser l'image locale de Minikube
         ports:
-        - containerPort: 8089 # <--- DOIT ÊTRE 8089 pour correspondre au code
+        - containerPort: 8089
+        env:
+        - name: SPRING_DATASOURCE_URL
+          value: "jdbc:mysql://mysql:3306/student_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true"
+        - name: SPRING_DATASOURCE_USERNAME
+          value: "root"
+        - name: SPRING_DATASOURCE_PASSWORD
+          value: "root"
