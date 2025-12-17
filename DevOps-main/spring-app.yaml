@@ -36,8 +36,10 @@ spec:
         - containerPort: 8089
         env:
         - name: SPRING_DATASOURCE_URL
+          # CHANGEMENT ICI : mysql au lieu de mysql-service
           value: "jdbc:mysql://mysql:3306/student_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true"
         - name: SPRING_DATASOURCE_USERNAME
           value: "root"
         - name: SPRING_DATASOURCE_PASSWORD
           value: "root"
+
