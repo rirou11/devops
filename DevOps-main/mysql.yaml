@@ -1,20 +1,10 @@
-apiVersion: v1
-kind: Service
-metadata:
-  name: mysql
-  namespace: devops
-spec:
-  ports:
-    - port: 3306
-  selector:
-    app: mysql
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mysql
   namespace: devops
 spec:
+  replicas: 1
   selector:
     matchLabels:
       app: mysql
@@ -24,11 +14,25 @@ spec:
         app: mysql
     spec:
       containers:
-      - image: mysql:5.7
-        name: mysql
-     env:
-  - name: MYSQL_ROOT_PASSWORD
-    value: "root"  # <--- Quel mot de passe est écrit ici ?
-  - name: MYSQL_DATABASE
-    value: "student_db" # <--- Quel nom est écrit ici ?
-
+      - name: mysql
+        image: mysql:8.0
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: "root"
+        - name: MYSQL_DATABASE
+          value: "student_db"
+        ports:
+        - containerPort: 3306
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: devops
+spec:
+  selector:
+    app: mysql
+  ports:
+    - protocol: TCP
+      port: 3306
+      targetPort: 3306
