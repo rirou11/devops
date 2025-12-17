@@ -8,8 +8,8 @@ spec:
     app: student-management
   ports:
     - protocol: TCP
-      port: 8080
-      targetPort: 8080
+      port: 8080      # Port externe (celui que tu utiliseras)
+      targetPort: 8089 # Port interne (celui de ton code Java)
       nodePort: 30001
   type: NodePort
 ---
@@ -33,4 +33,4 @@ spec:
         image: student-management-app:latest
         imagePullPolicy: Never
         ports:
-        - containerPort: 8080
+        - containerPort: 8089 # <--- DOIT ÊTRE 8089 pour correspondre au code
