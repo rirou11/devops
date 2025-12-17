@@ -1,27 +1,10 @@
-<<<<<<< HEAD
-=======
-apiVersion: v1
-kind: Service
-metadata:
-  name: mysql
-  namespace: devops
-spec:
-  ports:
-    - port: 3306
-  selector:
-    app: mysql
----
->>>>>>> 3f561f9 (Correction des noms de fichiers et de la config)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mysql
   namespace: devops
 spec:
-<<<<<<< HEAD
   replicas: 1
-=======
->>>>>>> 3f561f9 (Correction des noms de fichiers et de la config)
   selector:
     matchLabels:
       app: mysql
@@ -31,7 +14,6 @@ spec:
         app: mysql
     spec:
       containers:
-<<<<<<< HEAD
       - name: mysql
         image: mysql:8.0
         env:
@@ -57,12 +39,3 @@ spec:
     - protocol: TCP
       port: 3306
       targetPort: 3306
-=======
-      - image: mysql:5.7
-        name: mysql
-        env:
-        - name: MYSQL_ROOT_PASSWORD
-          value: root
-        - name: MYSQL_DATABASE
-          value: student_db
->>>>>>> 3f561f9 (Correction des noms de fichiers et de la config)
