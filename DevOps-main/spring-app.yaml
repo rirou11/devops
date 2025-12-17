@@ -4,24 +4,14 @@ metadata:
   name: student-management-service
   namespace: devops
 spec:
-<<<<<<< HEAD
   type: NodePort
-=======
->>>>>>> 3f561f9 (Correction des noms de fichiers et de la config)
   selector:
     app: student-management
   ports:
     - protocol: TCP
-<<<<<<< HEAD
-      port: 8080      # Port exposé par le service
-      targetPort: 8089 # Port sur lequel l'app Spring Boot écoute réellement
-      nodePort: 30001
-=======
       port: 8080
-      targetPort: 8080
+      targetPort: 8089
       nodePort: 30001
-  type: NodePort
->>>>>>> 3f561f9 (Correction des noms de fichiers et de la config)
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -41,21 +31,13 @@ spec:
       containers:
       - name: student-management
         image: student-management-app:latest
-<<<<<<< HEAD
-        imagePullPolicy: Never  # Important pour utiliser l'image locale de Minikube
+        imagePullPolicy: Never
         ports:
         - containerPort: 8089
         env:
         - name: SPRING_DATASOURCE_URL
-          # CHANGEMENT ICI : mysql au lieu de mysql-service
           value: "jdbc:mysql://mysql:3306/student_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true"
         - name: SPRING_DATASOURCE_USERNAME
           value: "root"
         - name: SPRING_DATASOURCE_PASSWORD
           value: "root"
-
-=======
-        imagePullPolicy: Never
-        ports:
-        - containerPort: 8080
->>>>>>> 3f561f9 (Correction des noms de fichiers et de la config)
